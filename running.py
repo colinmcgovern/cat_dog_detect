@@ -20,21 +20,28 @@ model = keras.models.load_model('saved_model/my_model')
 root = tkinter.Tk()
 root.withdraw() #use to hide tkinter window
 
-filepath = askopenfilename()
+failure = False
 
-if len(filepath) > 0:
-	img_width, img_height = 227, 227
-	img = load_img(filepath, target_size = (img_width, img_height))
-	img.show()
-	input_arr = img_to_array(img)
+while failure == False:
+	filepath = askopenfilename()
 
-	img = np.expand_dims(img, axis = 0)
-	pred = model.predict(img)
+	if len(filepath) > 0:
+		img_width, img_height = 227, 227
+		img = load_img(filepath, target_size = (img_width, img_height))
+
+		img.show()
+		
+		input_arr = img_to_array(img)
+
+		img = np.expand_dims(img, axis = 0)
+
+		pred = model.predict(img)
 
 
-	print(CLASS_NAMES[np.argmax(pred)])
+		print(CLASS_NAMES[np.argmax(pred)])
 
-else: 
-	print("upload failure")
+	else: 
+		print("upload failure")
+		failure = True
 
 print("done")
