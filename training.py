@@ -3,26 +3,49 @@ from tensorflow import keras
 import matplotlib.pyplot as plt
 import os
 import time
+from PIL import Image
 
-(train_images, train_labels), (test_images, test_labels) = keras.datasets.cifar10.load_data()
+import numpy as np
+from keras.preprocessing.image import load_img
+from keras.preprocessing.image import img_to_array
+from keras.preprocessing.image import array_to_img
 
-CLASS_NAMES= ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+import utility
 
-num_images = 500
+train_neg_images,train_neg_labels = utility.get_neg()
+train_pos_images,train_pos_labels = utility.get_pos()
 
-validation_images, validation_labels = train_images[:num_images], train_labels[:num_images]
-train_images, train_labels = train_images[num_images:], train_labels[num_images:]
+print(len(train_neg_images)," train_neg_images")
+print(len(train_pos_images)," train_pos_images")
+
+last_index = len(train_pos_images)
+if(len(train_neg_images) < len(train_pos_images)):
+  last_index = len(train_neg_images)
+
+validation_images = train_neg_images[0:25] + train_pos_images[0:25]
+validation_labels = train_neg_labels[0:25] + train_pos_labels[0:25]
+test_images = train_neg_images[25:50] + train_pos_images[25:50]
+test_labels = train_neg_labels[25:50] + train_pos_labels[25:50]
+train_images = train_neg_images[50:last_index] + train_pos_images[50:last_index]
+train_labels = train_neg_labels[50:last_index] + train_pos_labels[50:last_index]
+
+# print(train_labels)
+# exit()
+
+print(len(validation_images)," validation images")
+print(len(test_images)," test images")
+print(len(train_images)," train images")
 
 train_ds = tf.data.Dataset.from_tensor_slices((train_images, train_labels))
 test_ds = tf.data.Dataset.from_tensor_slices((test_images, test_labels))
 validation_ds = tf.data.Dataset.from_tensor_slices((validation_images, validation_labels))
 
-plt.figure(figsize=(20,20))
-for i, (image, label) in enumerate(train_ds.take(5)):
-    ax = plt.subplot(5,5,i+1)
-    plt.imshow(image)
-    plt.title(CLASS_NAMES[label.numpy()[0]])
-    plt.axis('off')
+# plt.figure(figsize=(20,20))
+# for i, (image, label) in enumerate(train_ds.take(5)):
+#     ax = plt.subplot(5,5,i+1)
+#     plt.imshow(image)
+#     plt.title(CLASS_NAMES[label.numpy()[0]])
+#     plt.axis('off')
 
 def process_images(image, label):
     # Normalize images to have a mean of 0 and standard deviation of 1
@@ -70,7 +93,7 @@ model = keras.models.Sequential([
     keras.layers.Dropout(0.5),
     keras.layers.Dense(4096, activation='relu'),
     keras.layers.Dropout(0.5),
-    keras.layers.Dense(10, activation='softmax')
+    keras.layers.Dense(2, activation='softmax')
 ])
 
 root_logdir = os.path.join(os.curdir, "logs/fit/")
@@ -82,12 +105,14 @@ tensorboard_cb = keras.callbacks.TensorBoard(run_logdir)
 
 
 
+# model.compile(loss='sparse_categorical_crossentropy',
+#  optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
 model.compile(loss='sparse_categorical_crossentropy',
- optimizer=tf.optimizers.SGD(lr=0.001), metrics=['accuracy'])
+ optimizer=tf.optimizers.SGD(lr=1e-10), metrics=['accuracy'])
 model.summary()
 
 model.fit(train_ds,
-          epochs=10,
+          epochs=150, # 12 hours
           validation_data=validation_ds,
           validation_freq=1,
           callbacks=[tensorboard_cb])
